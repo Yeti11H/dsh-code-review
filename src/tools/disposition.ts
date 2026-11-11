@@ -14,8 +14,8 @@ export function dispositionTool(serviceFor: ServiceFor) {
     },
     output: reviewOutput,
     async execute(args, exec) {
-      if (args.action !== 'wont_fix' && args.action !== 'reopen') throw new Error('action must be wont_fix or reopen');
-      return (await serviceFor(exec)).disposition(args.sessionId, args.issueId, args.action, args.reason);
+      if (!['wont_fix', 'reopen', 'false_positive'].includes(args.action)) throw new Error('action must be wont_fix, false_positive or reopen');
+      return (await serviceFor(exec)).disposition(args.sessionId, args.issueId, args.action as 'wont_fix' | 'reopen' | 'false_positive', args.reason);
     },
   });
 }

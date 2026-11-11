@@ -11,7 +11,7 @@ export function checkStatusTool(serviceFor: ServiceFor) {
     async execute(args, exec) {
       const result = await (await serviceFor(exec)).checkStatus(args.sessionId, exec.signal);
       if (!Array.isArray(result)) return result;
-      return { sessionId: '', status: 'list', reportPath: '', confirmedIssues: 0, needsCheck: 0, optionalSuggestions: 0,
+      return { sessionId: '', status: 'list', reportPath: '', confirmedIssues: 0, needsCheck: 0, optionalSuggestions: 0, overallRiskScore: 0, recommendation: 'no_findings',
         message: `${result.length} reviews`, report: JSON.stringify(result, null, 2) };
     },
   });

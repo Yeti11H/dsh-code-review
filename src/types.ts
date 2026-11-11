@@ -40,6 +40,9 @@ export interface Finding {
 }
 
 export interface VerifiedIssue {
+  /** Derived prioritization heuristic, not a probability. Optional for legacy sessions. */
+  riskScore?: number;
+  customRuleNames?: string[];
   id: string;
   fingerprint: string;
   title: string;
@@ -91,6 +94,7 @@ export interface ModelClient {
 }
 
 export interface ReviewRound {
+  ruleMatches?: RuleMatch[];
   roundNumber: number;
   timestamp: number;
   codeHash: string;
@@ -118,6 +122,8 @@ export interface ReviewSession {
 }
 
 export interface ReviewOptions {
+  customRules?: CustomRule[];
+  learningMode?: boolean;
   maxChangedLines?: number;
   maxFileBytes?: number;
   maxSnapshotBytes?: number;
@@ -130,6 +136,8 @@ export interface ReviewOptions {
 }
 
 export interface ReviewResult {
+  overallRiskScore: number;
+  recommendation: RiskSummary['recommendation'];
   sessionId: string;
   status: ReviewSession['status'];
   reportPath: string;
@@ -138,4 +146,35 @@ export interface ReviewResult {
   optionalSuggestions: number;
   message: string;
   report: string;
+}
+
+export interface CustomRule {
+  name: string;
+  pattern: string;
+  severity: 'critical' | 'high' | 'medium' | 'low';
+  category: VerifiedIssue['category'];
+  message: string;
+}
+export interface RuleMatch extends Evidence {
+  name: string;
+  severity: CustomRule['severity'];
+  category: VerifiedIssue['category'];
+  message: string;
+}
+export interface Learning {
+  sessionId: string;
+  issueId: string;
+  file: string;
+  codePattern: string;
+  contextHash: string;
+  action: 'false_positive' | 'wont_fix';
+  reason: string;
+  addedAt: string;
+}
+export interface RiskSummary {
+  overallRiskScore: number;
+  recommendation: 'request_changes' | 'needs_human_review' | 'no_findings';
+  high: number;
+  medium: number;
+  low: number;
 }

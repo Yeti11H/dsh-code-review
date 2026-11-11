@@ -1,6 +1,7 @@
 {
   "name": "@ooohyg/dsh-code-review",
-  "version": "0.1.1",
+  "version": "0.2.0",
+  "bin": { "dsh-review": "scripts/ci-review.mjs" },
   "publishConfig": { "access": "public", "registry": "https://registry.npmjs.org/" },
   "description": "Evidence-based code review and incremental rechecks for DeepSeek Harness.",
   "type": "module",
@@ -17,7 +18,7 @@
     "./package.json": "./package.json",
     "./locale/*.json": "./locale/*.json"
   },
-  "files": ["dist", "locale", "scripts/load.mjs", "scripts/prepare-evaluation.mjs", "examples", "docs", "README.md", "LICENSE", "PROMPT.md", "CHANGELOG.md"],
+  "files": ["dist", "locale", "scripts/*.mjs", "examples", "docs", "README.md", "LICENSE", "PROMPT.md", "CHANGELOG.md"],
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",

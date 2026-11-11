@@ -4,6 +4,8 @@ export const reviewOutput = {
   schema: {
     type: 'object', additionalProperties: false,
     properties: {
+      overallRiskScore: { type: 'number', required: true },
+      recommendation: { type: 'string', required: true },
       sessionId: { type: 'string', required: true },
       status: { type: 'string', required: true },
       reportPath: { type: 'string', required: true },

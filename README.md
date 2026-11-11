@@ -1,27 +1,47 @@
 # dsh-code-review
 
-DeepSeek Harness 的证据驱动代码审查插件。读取真实 Git 改动，分两轮找问题、核对代码引用，保存报告并追踪修复。
+> **让 AI 代码审查有据可查。** 核对意见中的代码引用，修复后保留问题编号，审查反复不收敛时提示人工介入。
 
-![代码审查与增量复查演示](https://raw.githubusercontent.com/Yeti11H/dsh-code-review/main/assets/demo.gif)
+这是一个 DeepSeek Harness 插件，适合希望保留审查依据、业务规则和修复历史的开发者。0.2.0 增加 CI 命令、团队规则、人工反馈记忆和风险处理优先级。
 
-演示使用本地脚本模型，展示插件核心的实际输出；这是排版回放，不是界面录屏或真实 DeepSeek 效果评测。[演示数据来源](docs/DEMO.md)。
+[真实 Web 演示](https://github.com/Yeti11H/dsh-code-review/blob/main/assets/web-demo.mp4) · [快速开始](#本地安装与启动) · [CI 接入](docs/CI.md) · [设计思路](docs/improvement-design.md) · [真实模型评测](docs/LIVE_EVALUATION.md)
 
-**状态：0.1.1 试用版。** 适配并固定在 DeepSeek Harness `0.2.2-rc.1`、Cordis `4.1.0`。Harness 仍在快速迭代，升级后需要重新验证兼容性。npm 包名为 `@ooohyg/dsh-code-review`；无作用域的 `dsh-code-review` 属于其他作者，请勿混淆。
+![代码审查与增量复查演示](https://raw.githubusercontent.com/Yeti11H/dsh-code-review/main/assets/web-demo.gif)
 
-[下载安装包](https://github.com/Yeti11H/dsh-code-review/releases/tag/v0.1.1) · [报告问题](https://github.com/Yeti11H/dsh-code-review/issues) · [更新记录](CHANGELOG.md)
+上图是官方 Harness Web 的真实操作：选择 DeepSeek Flash、提交审查、查看工具结果。使用真实模型，保留等待时间；片尾延长约 6.5 秒便于阅读。[录制说明](docs/WEB_DEMO.md)。旧版脚本模型动画仍在 assets/demo.gif 中，二者不要混淆。
 
-## 能做什么
+## 核心能力
 
-- 审查暂存、未暂存及非忽略的未跟踪文件，或指定分支与 HEAD 的差异。
-- 将需求、业务规则和不涉及范围一起交给模型。
-- 第一轮找疑点，第二轮核查。程序逐字验证引用的文件、行号和原文。
-- 输出已确认缺陷、待核查风险、可选建议、误报反证及覆盖范围。
-- 保存原始快照、模型请求和响应、稳定的问题编号以及历轮记录。
-- 修复后只扫描相对上一轮的变化，并复核受影响的原问题。
-- 三个不同代码版本的审查仍未收敛时，提示人工介入。代码没变则不重复审查。
-- 默认不改源码、不执行测试。测试与接受风险的操作经过 Harness 的批准机制。
+- 🔎 **代码证据可核对**：固定 Git 快照，逐字核对文件、行号和引用原文。证据不足就降级。
+- 🔁 **修复有历史**：只扫描新增变化，复核受影响的问题，保留编号与历轮状态。
+- 🎯 **业务规则前置**：输入需求、规则和排除范围；不确定的业务判断保留待核查。
+- 🛑 **不收敛就转人工**：三个不同代码版本仍不收敛时提示人工介入；源码未变时跳过模型调用。
+- 🧩 **适配团队流程**：CI 命令、自定义规则线索、明确人工反馈记忆与风险排序。
+- 📋 **保留审查记录**：源码快照、精确模型输入输出、JSON 与 Markdown 报告。
 
-“证据已核对”只说明引用确实来自快照，不保证模型对业务或执行路径的判断正确。`completed` 表示本轮分析完成，不表示批准合并。
+引用正确不等于结论正确。真实小样本评测发现了过度确认和复查噪声，详见评测记录。`completed` 仅表示本轮分析完成，不代表批准合并。
+
+## 适用场景
+
+适合已有 Git 仓库、经常修复后复查、愿意输入业务规则的团队；也适合希望在 CI 留下可追溯报告的开发者。支付、权限和删除等关键业务可作为辅助审查，最终判断仍由负责人承担。
+
+纯格式调整优先使用 ESLint/Prettier。没有 Git 提交的独立文件暂不支持。大规模重构建议先拆分，自动分批不能保证跨模块推理完整。它也没有提供合规认证或组织审批权限系统。
+
+插件在本地运行，但使用 DeepSeek 等云模型时，选中的代码与上下文会发送到模型服务。请按团队的数据访问规则选择模型。
+
+## 与其他审查方式如何选择
+
+| 关注点 | 本插件 | 手动给模型贴代码 | Copilot 等集成审查产品 |
+|---|---|---|---|
+| 原文引用校验 | 程序核对快照中的文件、行号和原文 | 取决于人工核对或自建脚本 | 需按具体产品版本确认，不作未经实测的断言 |
+| 修复追踪 | 本地稳定编号、历史与增量复查 | 需自行保存记录和组织复查 | 按所选产品的 PR 与会话功能确认 |
+| 团队业务规则 | 本轮输入＋自定义文本规则线索 | 可放在提示词中 | 按产品提供的规则配置确认 |
+| 留存与数据路径 | 仓库内审计文件；源码发往所选模型 | 取决于客户端和模型 | 按产品文档和组织设置确认 |
+| 成本 | 模型用量，另有运行环境成本 | 模型用量或订阅 | 按当前套餐和计费方式确认 |
+
+本项目尚未完成相同模型、相同样本的单轮/两轮对照，不宣称准确率优于上述产品。
+
+**兼容性：** 适配 DeepSeek Harness `0.2.2-rc.1`、Cordis `4.1.0`，升级需重新验证。npm 包名为 `@ooohyg/dsh-code-review`，无作用域的同名包属于其他作者。
 
 ## 环境
 
@@ -40,7 +60,7 @@ DeepSeek Harness 的证据驱动代码审查插件。读取真实 Git 改动，�
 mkdir review-tools
 cd review-tools
 npm init -y
-npm install @ooohyg/dsh-code-review@0.1.1
+npm install @ooohyg/dsh-code-review@0.2.0
 node node_modules/@ooohyg/dsh-code-review/scripts/load.mjs "D:/code/my-project"
 npx @deepseek-ai/dsh@0.2.2-rc.1 web --patch ./local-overlay.yml
 ```
@@ -49,7 +69,7 @@ npx @deepseek-ai/dsh@0.2.2-rc.1 web --patch ./local-overlay.yml
 
 ### 使用交付的安装包
 
-从 [v0.1.1 下载页](https://github.com/Yeti11H/dsh-code-review/releases/tag/v0.1.1) 下载 `ooohyg-dsh-code-review-0.1.1.tgz`。
+从 [v0.2.0 下载页](https://github.com/Yeti11H/dsh-code-review/releases/tag/v0.2.0) 下载 `ooohyg-dsh-code-review-0.2.0.tgz`。
 
 在独立的工具目录中安装本地 `.tgz` 文件。路径请替换成下载位置：
 
@@ -57,7 +77,7 @@ npx @deepseek-ai/dsh@0.2.2-rc.1 web --patch ./local-overlay.yml
 mkdir review-tools
 cd review-tools
 npm init -y
-npm install "D:/Downloads/ooohyg-dsh-code-review-0.1.1.tgz"
+npm install "D:/Downloads/ooohyg-dsh-code-review-0.2.0.tgz"
 node node_modules/@ooohyg/dsh-code-review/scripts/load.mjs "D:/code/my-project"
 npx @deepseek-ai/dsh@0.2.2-rc.1 web --patch ./local-overlay.yml
 ```
@@ -99,7 +119,7 @@ npx @deepseek-ai/dsh@0.2.2-rc.1 web --patch ./local-overlay.yml
 
 > 请调用 check_review_status 列出本仓库的审查会话。
 
-插件载入后注册四个模型可调用工具：`start_review`、`recheck`、`check_review_status`、`set_review_issue_status`。这些是工具名，不是独立终端命令；不存在示例计划里未经实现的 `dsh-code-review recheck` CLI。
+插件载入后注册四个模型可调用工具：`start_review`、`recheck`、`check_review_status`、`set_review_issue_status`。这些是模型工具名。0.2.0 另提供 `dsh-review` 非交互命令，用于 CI 发起新审查；复查仍通过 Harness 工具进行。详见 [CI 接入](docs/CI.md)。
 
 ## 工具参数
 
@@ -147,7 +167,12 @@ npx @deepseek-ai/dsh@0.2.2-rc.1 web --patch ./local-overlay.yml
 }
 ```
 
-`action` 取 `wont_fix` 或 `reopen`。通过 Harness 批准后记录原因，接受的风险仍在报告中可见。它只记录使用者的决定，不替代组织的负责人权限管理。不要让模型为了结束审查而自行接受风险。
+`action` 取 `wont_fix`、`false_positive` 或 `reopen`。学习模式见 [团队定制说明](docs/CUSTOMIZATION.md)。通过 Harness 批准后记录原因，接受的风险仍在报告中可见。它只记录使用者的决定，不替代组织的负责人权限管理。不要让模型为了结束审查而自行接受风险。
+
+## CI、风险排序与团队定制
+
+- [CI 命令和 GitHub Actions 示例](docs/CI.md)：JSON 产物、退出码与用量。
+- [风险、自定义规则与反馈记忆](docs/CUSTOMIZATION.md)：规则命中仅是线索，风险分数不批准合并，反馈不自动屏蔽问题。
 
 ## 可选测试验证
 
@@ -182,6 +207,8 @@ npx @deepseek-ai/dsh@0.2.2-rc.1 web --patch ./local-overlay.yml
 | `maxCandidates` | 20 | 每批疑点上限，超限明确报错 |
 | `modelTimeoutMs` | 120000 | 单次模型调用超时 |
 | `testTimeoutMs` | 60000 | 单条测试命令超时 |
+| `customRules` | [] | 团队提供的正则核查线索 |
+| `learningMode` | false | 复用仍匹配的明确人工反馈 |
 
 二进制、符号链接、过大文件、依赖和生成目录、`.env` 与常见私钥文件默认排除。因读取限制遗漏的文件写入报告并转人工。文件名过滤不能识别所有硬编码秘密；使用者应按所在团队的数据访问规则配置 Harness 模型。
 
@@ -212,9 +239,9 @@ npm pack
 
 测试使用真实临时 Git 仓库、官方 Cordis / tools / LLM 运行时及本地脚本模型。并发示例通过可控暂停点实际复现旧覆盖，并验证条件发布修复。
 
-**脚本模型测试验证工程行为，不是 DeepSeek 检出率。** 本次没有调用真实付费模型，尚未评估线上准确率或成本。真实模型评测步骤见 [examples/live-evaluation.md](examples/live-evaluation.md)。
+**脚本模型测试验证工程行为，不是 DeepSeek 检出率。** 已完成一次真实接口的小样本评测，发现有效风险线索，也发现证据不足的确认结论，见 [评测报告](docs/LIVE_EVALUATION.md)。这不是稳定准确率或成本基准；复测方法见 [examples/live-evaluation.md](examples/live-evaluation.md)。
 
-本次环境、检查结果和未完成的真实模型验收见 [docs/VALIDATION.md](docs/VALIDATION.md)。
+环境、既有版本检查结果与限制见 [docs/VALIDATION.md](docs/VALIDATION.md)。
 
 `npm pack` 生成可安装的 `.tgz`。源码与试用安装包通过 [GitHub 仓库](https://github.com/Yeti11H/dsh-code-review)、[Release 页面](https://github.com/Yeti11H/dsh-code-review/releases) 和 npm 作用域包 `@ooohyg/dsh-code-review` 分发。项目未自动向社区发帖。
 
@@ -235,3 +262,4 @@ npm pack
 - [LLM runtime](https://github.com/deepseek-ai/deepseek-harness/tree/master/packages/llm/llm)
 
 MIT License。审查方法参考文中讨论的两轮核查、业务上下文和复查收敛原则，未复制各团队的私有实现。
+

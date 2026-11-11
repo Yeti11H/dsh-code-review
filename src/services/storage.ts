@@ -1,7 +1,7 @@
 import { lstat, mkdir, readFile, readdir, rename, rm, rmdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
-import type { ReviewSession } from '../types.js';
+import type { Learning, ReviewSession } from '../types.js';
 
 export class StorageService {
   readonly directory: string;
@@ -17,7 +17,7 @@ export class StorageService {
   }
 
   async write(name: string, data: string): Promise<void> {
-    if (!/^RV-[a-f0-9-]{36}\.(json|md)$/.test(name)) throw new Error('Invalid storage filename');
+    if (!/^RV-[a-f0-9-]{36}\.(json|md)$/.test(name) && name !== 'learnings.json') throw new Error('Invalid storage filename');
     await this.prepare();
     const temp = path.join(this.directory, `.${randomUUID()}.tmp`);
     try {
@@ -53,6 +53,25 @@ export class StorageService {
       sessions.push({ id: session.id, status: session.status, rounds: session.rounds.length, createdAt: session.createdAt });
     }
     return sessions.sort((a, b) => b.createdAt - a.createdAt);
+  }
+
+  async loadLearnings(): Promise<Learning[]> {
+    await this.prepare();
+    const file = path.join(this.directory, 'learnings.json');
+    try {
+      const stat = await lstat(file);
+      if (!stat.isFile() || stat.isSymbolicLink() || stat.size > 500_000) throw new Error('Invalid feedback file');
+      const value = JSON.parse(await readFile(file, 'utf8'));
+      if (!Array.isArray(value.learnings) || value.learnings.length > 100 || value.learnings.some((l: Learning) => !l
+        || !['false_positive', 'wont_fix'].includes(l.action) || typeof l.file !== 'string' || typeof l.codePattern !== 'string'
+        || !l.codePattern.trim() || l.codePattern.length > 300 || typeof l.reason !== 'string' || l.reason.length > 2000
+        || typeof l.contextHash !== 'string' || typeof l.sessionId !== 'string' || typeof l.issueId !== 'string')) throw new Error('Invalid feedback data');
+      return value.learnings;
+    } catch (error) { if ((error as NodeJS.ErrnoException).code === 'ENOENT') return []; throw error; }
+  }
+
+  async saveLearnings(learnings: Learning[]): Promise<void> {
+    await this.write('learnings.json', JSON.stringify({ learnings: learnings.slice(-100) }, null, 2));
   }
 
   async withLock<T>(operation: () => Promise<T>): Promise<T> {

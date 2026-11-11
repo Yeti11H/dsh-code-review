@@ -8,6 +8,8 @@ export const INITIAL_SCAN_PROMPT = `第一轮：扫描本批改动，找出有�
 检查并发、边界、错误处理、资源、安全及兼容性。只报本批涉及的问题，历史缺陷标明。
 业务信息缺失时继续检查技术问题，依赖业务判断的疑点设置 business_dependent=true。
 排除纯风格偏好、无依据的重构建议。行号必须来自提供的编号代码，不能凭 diff 的行数猜。
+customRuleMatches 是团队文本规则命中，请重点核查，但匹配本身不证明缺陷。historicalFeedback 是待重新核对的人工反馈，不是屏蔽规则。
+没有 try/catch、补偿或回滚本身不是缺陷；必须指出违反的明确规则、可见实现及实际影响。异步代码在单线程环境中也可能发生竞态。
 返回 JSON 数组，每项结构如下：
 {"id":"FD-001","location":{"file":"src/file.ts","lineRange":[10,12],"side":"after"},
 "description":"疑点标题","reasoning":"为什么怀疑，具体路径是什么",

@@ -2,7 +2,9 @@ import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 import type { ChangeSnapshot, FileChange, Finding, ModelClient, ModelRequest, ReviewContext,
   ReviewOptions, ReviewResult, ReviewRound, ReviewSession, TestResult, VerifiedIssue } from '../types.js';
-import { GitService, changedSources, incrementalFiles } from './git.js';
+import { GitService, calculateHash, changedSources, incrementalFiles } from './git.js';
+import { calculateRiskScore, riskSummary } from './risk.js';
+import { scanRules, validateRules } from './rules.js';
 import { StorageService } from './storage.js';
 import { ReportGenerator } from './reporter.js';
 import { parseFindings, parseJSON, verifyResponse } from './evidence.js';
@@ -18,6 +20,8 @@ export class ReviewService {
   constructor(public readonly repository: string, private readonly model: ModelClient, private readonly options: ReviewOptions = {}) {
     this.git = new GitService(repository, options);
     this.storage = new StorageService(repository);
+    validateRules(options.customRules);
+    if (options.learningMode !== undefined && typeof options.learningMode !== 'boolean') throw new Error('learningMode must be boolean');
     for (const key of ['maxChangedLines', 'maxFileBytes', 'maxSnapshotBytes', 'maxSourceFiles', 'maxPromptChars', 'maxCandidates', 'modelTimeoutMs', 'testTimeoutMs'] as const) {
       const value = options[key];
       if (value !== undefined && (!Number.isInteger(value) || value < 1)) throw new Error(`${key} must be a positive integer`);
@@ -68,14 +72,24 @@ export class ReviewService {
     return this.result(session);
   }
 
-  async disposition(id: string, issueId: string, action: 'wont_fix' | 'reopen', reason: string): Promise<ReviewResult> {
-    if (!reason.trim()) throw new Error('A reason is required');
+  async disposition(id: string, issueId: string, action: 'wont_fix' | 'reopen' | 'false_positive', reason: string): Promise<ReviewResult> {
+    if (!reason.trim() || reason.length > 2000) throw new Error('A reason is required, at most 2000 characters');
     return this.storage.withLock(async () => {
       const session = await this.storage.loadSession(id);
       const issue = session.rounds.at(-1)?.issues.find(i => i.id === issueId);
       if (!issue) throw new Error('Issue not found');
-      issue.status = action === 'wont_fix' ? 'wont_fix' : 'open';
+      const memory = (await this.storage.loadLearnings()).filter(l => l.sessionId !== id || l.issueId !== issueId);
+      if (this.options.learningMode && action !== 'reopen') {
+        const evidence = issue.code_evidence.find(e => e.side !== 'before' && e.quote.trim().length >= 8);
+        const pattern = evidence?.quote.split('\n').find(line => line.trim().length >= 8)?.slice(0, 300);
+        if (evidence && pattern) memory.push({ sessionId: id, issueId, file: evidence.file, codePattern: pattern,
+          contextHash: calculateHash(JSON.stringify(session.context)), action, reason, addedAt: new Date().toISOString() });
+      }
+      issue.status = action === 'wont_fix' ? 'wont_fix' : action === 'false_positive' ? 'resolved' : 'open';
+      if (action === 'false_positive') issue.verdict = 'false_positive';
+      if (action === 'reopen' && issue.verdict === 'false_positive') { issue.verdict = 'needs_check'; issue.verification_status = 'needs_manual_check'; }
       issue.rationale += `；用户处置（${new Date().toISOString()}）：${action}：${reason}`;
+      await this.storage.saveLearnings(memory);
       await this.save(session);
       return this.result(session, '已记录处置及原因；这不代表合并批准。');
     });
@@ -148,10 +162,19 @@ export class ReviewService {
     const context = this.buildContext(snapshot, finding.location.file, finding.location.lineRange, finding.verification_points.join('\n'));
     const raw = await this.call(session, { phase: 'verify', system: REVIEW_SYSTEM,
       prompt: VERIFY_FINDING_PROMPT + JSON.stringify({ context: session.context, finding, priorIssue: prior ?? null,
-        codeContext: context.text, scopeLimitations: [...snapshot.omissions, ...context.notes] }) }, signal);
+        codeContext: context.text, historicalFeedback: await this.feedback(session, snapshot),
+        scopeLimitations: [...snapshot.omissions, ...context.notes] }) }, signal);
     const result = verifyResponse(raw, finding, snapshot, context.files,
       !session.context.requirement.trim() || session.context.businessRules.length === 0, round);
     return { ...result, notes: context.notes };
+  }
+
+  private async feedback(session: ReviewSession, snapshot: ChangeSnapshot) {
+    if (!this.options.learningMode) return [];
+    const hash = calculateHash(JSON.stringify(session.context));
+    return (await this.storage.loadLearnings()).filter(l => l.contextHash === hash && snapshot.sources[l.file]?.includes(l.codePattern))
+      .slice(-10).map(l => ({ file: l.file, codePattern: l.codePattern, action: l.action, reason: l.reason,
+        instruction: '用户历史反馈仅供核查；接受风险不是安全证明，不得据此忽略新证据。' }));
   }
 
   private async runRound(session: ReviewSession, snapshot: ChangeSnapshot, files: FileChange[], previous: ReviewRound | undefined,
@@ -163,6 +186,11 @@ export class ReviewService {
       '模型生成的代码依据已核对原文；触发条件和影响仍可能判断错误。'];
     const scanned = new Set<string>();
     const omissions = [...snapshot.omissions];
+    const ruleScan = await scanRules(snapshot, files, this.options.customRules, signal);
+    omissions.push(...ruleScan.notes);
+    const ruleMatches = ruleScan.matches;
+    const historicalFeedback = await this.feedback(session, snapshot);
+    if (historicalFeedback.length) notes.push(`本轮参考 ${historicalFeedback.length} 条同上下文且原文仍匹配的人工反馈；不自动抑制问题。`);
     const missingBusiness = !session.context.requirement.trim() || session.context.businessRules.length === 0;
     if (missingBusiness) notes.push('需求或业务规则不完整；涉及业务预期的结论需要人工确认。');
 
@@ -199,6 +227,7 @@ export class ReviewService {
       const max = this.options.maxCandidates ?? 20;
       const raw = await this.call(session, { phase: 'scan', system: REVIEW_SYSTEM,
         prompt: INITIAL_SCAN_PROMPT + JSON.stringify({ context: session.context, maxCandidates: max, changes: batchCode,
+          customRuleMatches: ruleMatches.filter(m => allowed.has(m.file)), historicalFeedback,
           previousIssues: issues.map(i => ({ id: i.id, title: i.title, location: i.location, status: i.status })),
           instructions: '不要重复已有问题。原问题的修复验证由独立流程处理。' }) }, signal);
       const findings = parseFindings(raw, max);
@@ -207,6 +236,8 @@ export class ReviewService {
         const verified = await this.verify(session, snapshot, finding, number, undefined, signal);
         notes.push(...verified.notes);
         const issue = verified.issue;
+        issue.customRuleNames = [...new Set(ruleMatches.filter(m => m.file === issue.location.file
+          && m.lineRange[0] >= issue.location.lineRange[0] && m.lineRange[0] <= issue.location.lineRange[1]).map(m => m.name))];
         const existing = issues.find(i => i.fingerprint === issue.fingerprint
           || (i.location.file === issue.location.file && i.category === issue.category && i.trigger_condition === issue.trigger_condition && !!i.trigger_condition)
           || (i.location.file === issue.location.file && i.category === issue.category && i.code_evidence.length > 0 && JSON.stringify(i.code_evidence) === JSON.stringify(issue.code_evidence)));
@@ -241,7 +272,7 @@ export class ReviewService {
     }
     const resolved = issues.filter(i => i.status === 'resolved' && previous?.issues.some(old => old.id === i.id && old.status === 'open')).map(i => i.id);
     const unchanged = issues.filter(i => i.status === 'open' && !newIds.includes(i.id)).map(i => i.id);
-    session.rounds.push({ roundNumber: number, timestamp: Date.now(), codeHash: snapshot.hash, snapshot, issues,
+    session.rounds.push({ roundNumber: number, timestamp: Date.now(), codeHash: snapshot.hash, snapshot, issues, ruleMatches,
       newIssuesCount: newIds.length, resolvedIssuesCount: resolved.length,
       coverage: { files: [...scanned], omissions: [...new Set(omissions)], notes: [...new Set(notes)] }, tests,
       changes: { resolved, newIssues: newIds, unchanged } });
@@ -276,6 +307,7 @@ export class ReviewService {
   }
 
   private async save(session: ReviewSession): Promise<void> {
+    for (const round of session.rounds) for (const issue of round.issues) issue.riskScore = calculateRiskScore(issue);
     await this.storage.saveSession(session);
     await this.storage.write(`${session.id}.md`, this.reporter.generateMarkdown(session));
   }
@@ -283,6 +315,7 @@ export class ReviewService {
   private result(session: ReviewSession, message = ''): ReviewResult {
     const issues = session.rounds.at(-1)?.issues.filter(i => i.status === 'open') ?? [];
     return { sessionId: session.id, status: session.status, reportPath: path.join(this.storage.directory, `${session.id}.md`),
+      overallRiskScore: riskSummary(session).overallRiskScore, recommendation: riskSummary(session).recommendation,
       confirmedIssues: issues.filter(i => i.verdict === 'confirmed' && !i.optional).length,
       needsCheck: issues.filter(i => i.verdict === 'needs_check').length,
       optionalSuggestions: issues.filter(i => i.optional && i.verdict !== 'needs_check').length,
