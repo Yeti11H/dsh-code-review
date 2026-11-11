@@ -3,7 +3,7 @@
 `dsh-review` 是本插件提供的 CLI，不依赖不存在的 `dsh run-tool`。它复用 ReviewService，通过 DeepSeek Chat Completions 接口连接模型。Harness Web 插件仍复用 Harness 自己的模型服务。
 
 ```sh
-npm install @ooohyg/dsh-code-review@0.2.0
+npm install @ooohyg/dsh-code-review@0.2.1
 # 在当前进程或 CI Secret 中设置 DEEPSEEK_API_KEY，不要写进命令历史或配置文件。
 node node_modules/@ooohyg/dsh-code-review/scripts/ci-review.mjs \
   --cwd /path/to/repo \

@@ -1,0 +1,4 @@
+- insert:
+    - id: evidence-code-review
+      name: '@ooohyg/dsh-code-review'
+      config: {}

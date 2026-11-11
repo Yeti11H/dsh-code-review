@@ -32,9 +32,9 @@ class ReviewAdapter extends LlmAdapter {
   }
 }
 
-async function invoke(ctx, name, args) {
+async function invoke(ctx, name, args, agent) {
   const pipeline = new ToolExecutionPipeline(ctx);
-  const prepared = await pipeline.prepare({ name, arguments: args, callId: 'call-test', signal: new AbortController().signal });
+  const prepared = await pipeline.prepare({ name, arguments: args, agent, callId: 'call-test', signal: new AbortController().signal });
   const dispatched = prepared.kind === 'dispatch' ? await pipeline.dispatch(prepared.exec) : prepared;
   return pipeline.complete(prepared.exec, dispatched);
 }
@@ -53,6 +53,25 @@ test('real Cordis + official tools + LLM runtime load plugin and dispatch a comp
 test('official input validation rejects wrong argument types', async t => {
   const f = await fixture(t); const ctx = await mount(t, { cwd: f.root, provider: 'test', model: 'test-model' }, new ReviewAdapter());
   const r = await invoke(ctx, 'start_review', { businessRules: 42 }); assert.equal(r.isError, true);
+});
+
+test('bundle defaults follow each session workspace while installer cwd takes precedence', async t => {
+  const first = await fixture(t); const second = await fixture(t);
+  await first.write('index.js', bug); await second.write('index.js', bug);
+  const adapter = new ReviewAdapter();
+  const ctx = await mount(t, { provider: 'test', model: 'test-model' }, adapter);
+  for (const repository of [first, second]) {
+    const agent = { session: { header: { cwd: repository.root } } };
+    const result = await invoke(ctx, 'start_review', { requirement: 'update index', businessRules: ['new version must survive'] }, agent);
+    assert.equal(result.isError, false, JSON.stringify(result));
+    assert.equal(result.value.confirmedIssues, 1);
+    const status = await invoke(ctx, 'check_review_status', { sessionId: result.value.sessionId }, agent);
+    assert.equal(status.isError, false, JSON.stringify(status));
+  }
+  assert.equal(adapter.calls.length, 4);
+  const fixedCtx = await mount(t, { cwd: first.root, provider: 'test', model: 'test-model' }, new ReviewAdapter());
+  const result = await invoke(fixedCtx, 'start_review', { requirement: 'update index' }, { session: { header: { cwd: 'nonexistent-session-path' } } });
+  assert.equal(result.isError, false, JSON.stringify(result));
 });
 
 test('test execution and issue disposition require approval, unavailable approval fails closed', async t => {

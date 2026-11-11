@@ -13,7 +13,9 @@ export const name = 'dsh-code-review';
 export const inject = ['tools', 'llm'];
 
 export interface Config extends ReviewOptions {
-  /** Explicit installer-selected repository. Defaults to the launching directory. */
+  /** Explicit installer-selected repository. Defaults to the launching directory.
+   * When a session supplies its workspace, that workspace precedes the launch fallback.
+   */
   cwd?: string;
   /** Omit both to reuse the invoking agent's selected provider and model. */
   provider?: string;
@@ -25,7 +27,7 @@ export function apply(ctx: Context, config: Config = {}): void {
   const serviceFor = async (exec: ToolRunContext) => {
     const selected = config.provider && config.model ? { provider: config.provider, model: config.model } : exec.agent?.model.current();
     if (!selected) throw new Error('Select a Harness model or configure the plugin provider and model');
-    const repository = await new GitService(config.cwd ?? process.cwd(), config).root(exec.signal);
+    const repository = await new GitService(config.cwd ?? exec.agent?.session?.header.cwd ?? process.cwd(), config).root(exec.signal);
     return new ReviewService(repository, new HarnessModelClient(ctx, selected), config);
   };
   ctx.tools.register(startReviewTool(serviceFor));

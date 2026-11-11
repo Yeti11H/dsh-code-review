@@ -52,7 +52,28 @@
 
 ## 本地安装与启动
 
-### 从 npm 安装
+### 标准插件安装（web profile，0.2.1 起）
+
+先安装已验证的 Harness 版本及其插件管理器使用的 pnpm：
+
+```sh
+npm install -g @deepseek-ai/dsh@0.2.2-rc.1 pnpm
+dsh plugin --profile web add @ooohyg/dsh-code-review
+```
+
+在需要审查的 Git 仓库中启动 `dsh web`，配置并选择可用模型，再发起审查。已经运行的 Web 服务安装后请重启。工具默认使用当前会话的工作目录；没有会话目录时回退到启动目录。该目录必须是已有提交的 Git 仓库，子目录会定位到仓库根目录。
+
+0.2.1 包含 `dsh.bundle.patch` 和 `cordis.patch.yml`，由 profile 自动加载，无需另生成 overlay。已经使用下方手动 overlay 的用户，请选一种加载方式，避免把同一插件重复注册。
+
+卸载：
+
+```sh
+dsh plugin --profile web remove @ooohyg/dsh-code-review
+```
+
+分类为「工具与能力」。已添加 `dsh-plugin` topic，社区目录会按自己的扫描与核验流程决定收录；npm 发布不等于已经收录。目录为 [独立社区项目](https://dsh-plugin.org/zh/submit)，与 DeepSeek 官方无隶属关系。目前只声明已验证的 Harness Web `0.2.2-rc.1`，桌面版与其他 DSH 版本尚未验证，不据此承诺可用。
+
+### 手动 npm 安装与指定仓库
 
 在独立工具目录运行：
 
@@ -60,7 +81,7 @@
 mkdir review-tools
 cd review-tools
 npm init -y
-npm install @ooohyg/dsh-code-review@0.2.0
+npm install @ooohyg/dsh-code-review@0.2.1
 node node_modules/@ooohyg/dsh-code-review/scripts/load.mjs "D:/code/my-project"
 npx @deepseek-ai/dsh@0.2.2-rc.1 web --patch ./local-overlay.yml
 ```
@@ -69,7 +90,7 @@ npx @deepseek-ai/dsh@0.2.2-rc.1 web --patch ./local-overlay.yml
 
 ### 使用交付的安装包
 
-从 [v0.2.0 下载页](https://github.com/Yeti11H/dsh-code-review/releases/tag/v0.2.0) 下载 `ooohyg-dsh-code-review-0.2.0.tgz`。
+从 [v0.2.1 下载页](https://github.com/Yeti11H/dsh-code-review/releases/tag/v0.2.1) 下载 `ooohyg-dsh-code-review-0.2.1.tgz`。
 
 在独立的工具目录中安装本地 `.tgz` 文件。路径请替换成下载位置：
 
@@ -77,7 +98,7 @@ npx @deepseek-ai/dsh@0.2.2-rc.1 web --patch ./local-overlay.yml
 mkdir review-tools
 cd review-tools
 npm init -y
-npm install "D:/Downloads/ooohyg-dsh-code-review-0.2.0.tgz"
+npm install "D:/Downloads/ooohyg-dsh-code-review-0.2.1.tgz"
 node node_modules/@ooohyg/dsh-code-review/scripts/load.mjs "D:/code/my-project"
 npx @deepseek-ai/dsh@0.2.2-rc.1 web --patch ./local-overlay.yml
 ```
@@ -197,7 +218,7 @@ npx @deepseek-ai/dsh@0.2.2-rc.1 web --patch ./local-overlay.yml
 
 | 配置 | 默认值 | 作用 |
 |---|---:|---|
-| `cwd` | 启动目录 | 安装者指定的仓库；子目录自动定位到 Git 根目录 |
+| `cwd` | 当前会话目录；缺失时为启动目录 | 安装者明确指定的仓库优先；子目录自动定位到 Git 根目录 |
 | `provider` / `model` | 调用会话的选择 | 必须一起设置，或一起省略 |
 | `maxChangedLines` | 500 | 每批最大改动行数；大文件也拆分 |
 | `maxFileBytes` | 512000 | 单个源文件读取限制 |

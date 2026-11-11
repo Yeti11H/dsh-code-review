@@ -23,7 +23,7 @@ jobs:
         with:
           node-version: '24'
       - name: Install pinned review tool outside the checkout
-        run: npm install --prefix "$RUNNER_TEMP/review-tools" --ignore-scripts @ooohyg/dsh-code-review@0.2.0
+        run: npm install --prefix "$RUNNER_TEMP/review-tools" --ignore-scripts @ooohyg/dsh-code-review@0.2.1
       - name: Review committed changes
         env:
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}

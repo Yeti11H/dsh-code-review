@@ -2,9 +2,9 @@ name: Validate plugin
 
 on:
   push:
-    paths: ['src/**', 'tests/**', 'scripts/**', 'package*.json', 'tsconfig.json', '.github/workflows/validate.yml']
+    paths: ['src/**', 'tests/**', 'scripts/**', 'package*.json', 'cordis.patch.yml', 'locale/**', 'icon.svg', 'tsconfig.json', '.github/workflows/validate.yml']
   pull_request:
-    paths: ['src/**', 'tests/**', 'scripts/**', 'package*.json', 'tsconfig.json', '.github/workflows/validate.yml']
+    paths: ['src/**', 'tests/**', 'scripts/**', 'package*.json', 'cordis.patch.yml', 'locale/**', 'icon.svg', 'tsconfig.json', '.github/workflows/validate.yml']
   workflow_dispatch:
 
 permissions:
