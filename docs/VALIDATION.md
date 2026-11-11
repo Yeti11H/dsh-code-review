@@ -1,6 +1,6 @@
 # 本地交付验收
 
-本记录对应 `dsh-code-review` 0.1.0 试用版的本地验收。未发布到 npm；GitHub 发布状态以仓库和 Release 页面为准。
+本记录对应 `dsh-code-review` 0.1.0 核心实现的本地验收。0.1.1 仅调整分发与文档，增加 GIF；发布状态以 GitHub Release 和 npm 作用域包 `@ooohyg/dsh-code-review` 为准。
 
 ## 环境与兼容版本
 

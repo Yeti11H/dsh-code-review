@@ -2,9 +2,13 @@
 
 DeepSeek Harness 的证据驱动代码审查插件。读取真实 Git 改动，分两轮找问题、核对代码引用，保存报告并追踪修复。
 
-**状态：0.1.0 试用版。** 适配并固定在 DeepSeek Harness `0.2.2-rc.1`、Cordis `4.1.0`。Harness 仍在快速迭代，升级后需要重新验证兼容性。项目未发布到 npm；请使用 GitHub Release 安装包或源码。
+![代码审查与增量复查演示](https://raw.githubusercontent.com/Yeti11H/dsh-code-review/main/assets/demo.gif)
 
-[下载安装包](https://github.com/Yeti11H/dsh-code-review/releases/tag/v0.1.0) · [报告问题](https://github.com/Yeti11H/dsh-code-review/issues) · [更新记录](CHANGELOG.md)
+演示使用本地脚本模型，展示插件核心的实际输出；这是排版回放，不是界面录屏或真实 DeepSeek 效果评测。[演示数据来源](docs/DEMO.md)。
+
+**状态：0.1.1 试用版。** 适配并固定在 DeepSeek Harness `0.2.2-rc.1`、Cordis `4.1.0`。Harness 仍在快速迭代，升级后需要重新验证兼容性。npm 包名为 `@ooohyg/dsh-code-review`；无作用域的 `dsh-code-review` 属于其他作者，请勿混淆。
+
+[下载安装包](https://github.com/Yeti11H/dsh-code-review/releases/tag/v0.1.1) · [报告问题](https://github.com/Yeti11H/dsh-code-review/issues) · [更新记录](CHANGELOG.md)
 
 ## 能做什么
 
@@ -28,9 +32,24 @@ DeepSeek Harness 的证据驱动代码审查插件。读取真实 Git 改动，�
 
 ## 本地安装与启动
 
+### 从 npm 安装
+
+在独立工具目录运行：
+
+```sh
+mkdir review-tools
+cd review-tools
+npm init -y
+npm install @ooohyg/dsh-code-review@0.1.1
+node node_modules/@ooohyg/dsh-code-review/scripts/load.mjs "D:/code/my-project"
+npx @deepseek-ai/dsh@0.2.2-rc.1 web --patch ./local-overlay.yml
+```
+
+将示例路径替换为待审 Git 仓库的绝对路径。安装包名带 `@ooohyg/`，源码项目与工具名保持不变。
+
 ### 使用交付的安装包
 
-从 [v0.1.0 下载页](https://github.com/Yeti11H/dsh-code-review/releases/tag/v0.1.0) 下载 `dsh-code-review-0.1.0.tgz`。
+从 [v0.1.1 下载页](https://github.com/Yeti11H/dsh-code-review/releases/tag/v0.1.1) 下载 `ooohyg-dsh-code-review-0.1.1.tgz`。
 
 在独立的工具目录中安装本地 `.tgz` 文件。路径请替换成下载位置：
 
@@ -38,8 +57,8 @@ DeepSeek Harness 的证据驱动代码审查插件。读取真实 Git 改动，�
 mkdir review-tools
 cd review-tools
 npm init -y
-npm install "D:/Downloads/dsh-code-review-0.1.0.tgz"
-node node_modules/dsh-code-review/scripts/load.mjs "D:/code/my-project"
+npm install "D:/Downloads/ooohyg-dsh-code-review-0.1.1.tgz"
+node node_modules/@ooohyg/dsh-code-review/scripts/load.mjs "D:/code/my-project"
 npx @deepseek-ai/dsh@0.2.2-rc.1 web --patch ./local-overlay.yml
 ```
 
@@ -197,7 +216,7 @@ npm pack
 
 本次环境、检查结果和未完成的真实模型验收见 [docs/VALIDATION.md](docs/VALIDATION.md)。
 
-`npm pack` 生成可安装的 `.tgz`。源码与试用安装包通过 [GitHub 仓库](https://github.com/Yeti11H/dsh-code-review) 和 [Release 页面](https://github.com/Yeti11H/dsh-code-review/releases) 提供。项目未发布到 npm，也未自动向社区发帖。
+`npm pack` 生成可安装的 `.tgz`。源码与试用安装包通过 [GitHub 仓库](https://github.com/Yeti11H/dsh-code-review)、[Release 页面](https://github.com/Yeti11H/dsh-code-review/releases) 和 npm 作用域包 `@ooohyg/dsh-code-review` 分发。项目未自动向社区发帖。
 
 ## 与原计划的调整
 

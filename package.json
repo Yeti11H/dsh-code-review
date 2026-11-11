@@ -1,6 +1,7 @@
 {
-  "name": "dsh-code-review",
-  "version": "0.1.0",
+  "name": "@ooohyg/dsh-code-review",
+  "version": "0.1.1",
+  "publishConfig": { "access": "public", "registry": "https://registry.npmjs.org/" },
   "description": "Evidence-based code review and incremental rechecks for DeepSeek Harness.",
   "type": "module",
   "license": "MIT",
