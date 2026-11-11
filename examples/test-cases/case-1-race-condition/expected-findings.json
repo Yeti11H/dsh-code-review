@@ -1,0 +1,6 @@
+{
+  "requirement": "生成向量后发布知识索引",
+  "businessRules": ["旧版本不得覆盖已经发布的新版本", "每个版本的构建数据彼此隔离"],
+  "expected": "v3 构建暂停后 v4 发布，v3 随后无条件发布，导致有效版本倒退",
+  "verification": "node --test tests/integration.test.mjs 实际控制并发顺序复现；模型检出率须另行测量"
+}

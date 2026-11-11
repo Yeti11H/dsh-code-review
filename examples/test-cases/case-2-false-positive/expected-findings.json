@@ -1,0 +1,5 @@
+{
+  "requirement": "只接受 1 到 100 的整数分页大小",
+  "businessRules": ["非整数、NaN、Infinity、负数和大于 100 的值都应拒绝"],
+  "expected": "已有校验覆盖这些输入，不应重复建议新增相同校验"
+}

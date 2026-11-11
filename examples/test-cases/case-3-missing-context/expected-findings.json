@@ -1,0 +1,5 @@
+{
+  "requirement": "",
+  "businessRules": [],
+  "expected": "不能断言旧版回退一定错误；撤回与普通更新的预期需要人工确认"
+}

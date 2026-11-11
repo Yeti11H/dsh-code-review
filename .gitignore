@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.dsh-review/
+*.tgz
+local-overlay.yml
+work/
+.env
+.env.*
+*.pem
+*.key

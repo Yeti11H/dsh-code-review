@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Evidence-based code review",
+    "description": "Review Git changes in two passes, verify code citations, and track fixes across rechecks."
+  }
+}
