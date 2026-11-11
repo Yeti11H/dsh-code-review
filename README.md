@@ -197,7 +197,7 @@ npm pack
 
 本次环境、检查结果和未完成的真实模型验收见 [docs/VALIDATION.md](docs/VALIDATION.md)。
 
-`npm pack` 生成可安装的 `.tgz`。要提供给读者，也可发布源码仓库并加 `dsh-plugin` topic。本项目没有自动发布到 npm、GitHub 或社区。
+`npm pack` 生成可安装的 `.tgz`。源码与试用安装包通过 [GitHub 仓库](https://github.com/Yeti11H/dsh-code-review) 和 [Release 页面](https://github.com/Yeti11H/dsh-code-review/releases) 提供。项目未发布到 npm，也未自动向社区发帖。
 
 ## 与原计划的调整
 
