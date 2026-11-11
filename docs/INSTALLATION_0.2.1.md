@@ -21,6 +21,16 @@
 
 这些检查不需要真实模型请求。0.2.0 的真实 Web 模型操作另见 WEB_DEMO.md。此次不重复进行付费模型评测。
 
+## 发布后的公共安装与实际界面
+
+- npm `latest` 已更新为 0.2.1，公共下载归档与 GitHub Release 的安装包 SHA256 一致。
+- 在另一个独立的 DSH_HOME 中直接运行 `dsh plugin --profile web add @ooohyg/dsh-code-review --ignore-scripts`，从公共 npm 成功安装 0.2.1，自动选中 bundle，官方 profile 加载无跳过项。
+- 官方 Harness Web 实际启动，浏览器插件详情显示中文名称、图标、v0.2.1，包含的组件为 `evidence-code-review`，状态「运行中」。该界面验证使用本地发布归档；公共 npm 的标准安装另行验证。截图仅裁去来源信息和空白区域，未替换界面内容。
+- [GitHub Actions 42988949133](https://github.com/Yeti11H/dsh-code-review/actions/runs/42988949133)：Ubuntu 46 项通过、Windows 46 项通过，两组均 0 失败、0 跳过，类型检查和 pack dry-run 通过。
+- 最后查询社区公开目录时，仍没有 `Yeti11H/dsh-code-review`，需要等待目录后续扫描与核验。
+
+![标准安装后官方 Web 显示组件运行中](../assets/standard-install-0.2.1.png)
+
 ## 收录与兼容边界
 
 仓库已公开、添加 dsh-plugin topic，根目录有 package.json，导出 apply(ctx)，README 包含完整的标准安装命令。上述条件用于配合社区目录的自动发现，不代表已获目录核验。
