@@ -2,7 +2,9 @@
 
 DeepSeek Harness 的证据驱动代码审查插件。读取真实 Git 改动，分两轮找问题、核对代码引用，保存报告并追踪修复。
 
-**状态：0.1.0 本地试用版。** 适配并固定在 DeepSeek Harness `0.2.2-rc.1`、Cordis `4.1.0`。Harness 仍在快速迭代，升级后需要重新验证兼容性。项目未发布到 npm；下文使用本地源码或安装包，不存在已发布插件的安装承诺。
+**状态：0.1.0 试用版。** 适配并固定在 DeepSeek Harness `0.2.2-rc.1`、Cordis `4.1.0`。Harness 仍在快速迭代，升级后需要重新验证兼容性。项目未发布到 npm；请使用 GitHub Release 安装包或源码。
+
+[下载安装包](https://github.com/Yeti11H/dsh-code-review/releases/tag/v0.1.0) · [报告问题](https://github.com/Yeti11H/dsh-code-review/issues) · [更新记录](CHANGELOG.md)
 
 ## 能做什么
 
@@ -27,6 +29,8 @@ DeepSeek Harness 的证据驱动代码审查插件。读取真实 Git 改动，�
 ## 本地安装与启动
 
 ### 使用交付的安装包
+
+从 [v0.1.0 下载页](https://github.com/Yeti11H/dsh-code-review/releases/tag/v0.1.0) 下载 `dsh-code-review-0.1.0.tgz`。
 
 在独立的工具目录中安装本地 `.tgz` 文件。路径请替换成下载位置：
 
