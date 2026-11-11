@@ -93,4 +93,3 @@
 - `run.mjs`、`request.ps1`、`runtime-checks.mjs`：可复用评测脚本；密钥通过进程环境变量 `DSH_EVAL_DEEPSEEK_KEY` 传入。
 
 注意：文件名相同的初次失败会话快照可能被同一案例的后续成功报告替换，阶段级失败状态仍完整保留于 results.json；HTTP 原始请求和响应未被替换。
-

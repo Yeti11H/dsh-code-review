@@ -11,3 +11,5 @@
 认证 token、API 密钥、浏览器地址栏均不出现在录制画面。字幕不是审查功能的一部分。本次未上传到 B站或 YouTube；可下载 MP4 后按平台流程上传。README 与 GitHub Release 提供可直接访问的演示。
 
 旧文件 `assets/demo.gif` 仍保留，属于 0.1.1 的脚本模型排版动画，见 DEMO.md。不能把旧动画描述为真实模型录屏。
+
+本次工具原始 Markdown 报告存于 `examples/web-demo/report.md`；JSON 会话在 `examples/web-demo/session.json`，仓库绝对路径已替换为占位说明。提示词、模型输出和证据保留，未附带认证信息。
