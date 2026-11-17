@@ -94,6 +94,9 @@ export interface ModelClient {
 }
 
 export interface ReviewRound {
+  /** Frozen business inputs for this round. Optional for 0.2.1 sessions. */
+  contextSnapshot?: ReviewContext;
+  contextHash?: string;
   ruleMatches?: RuleMatch[];
   roundNumber: number;
   timestamp: number;

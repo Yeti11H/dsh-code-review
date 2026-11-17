@@ -1,0 +1,5 @@
+[
+  { "runId": "ok-1", "knownDefects": 1, "detectedKnownDefects": 1, "confirmedClaims": 2, "validConfirmedClaims": 1, "needsCheckClaims": 1, "unsupportedConfirmations": 1, "notes": "维护者判定：一条确认成立，一条缺少触发证据" },
+  { "runId": "ok-2", "knownDefects": 1, "detectedKnownDefects": 0, "confirmedClaims": 1, "validConfirmedClaims": 1, "needsCheckClaims": 0, "unsupportedConfirmations": 0, "notes": "维护者判定：确认意见成立，但漏掉已知缺陷" },
+  { "runId": "failed-1", "knownDefects": null, "detectedKnownDefects": null, "confirmedClaims": null, "validConfirmedClaims": null, "needsCheckClaims": null, "unsupportedConfirmations": null, "notes": "构造的请求失败；没有可裁定的模型报告" }
+]

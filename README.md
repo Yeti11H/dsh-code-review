@@ -4,7 +4,9 @@
 
 这是一个 DeepSeek Harness 插件，适合希望保留审查依据、业务规则和修复历史的开发者。0.2.0 增加 CI 命令、团队规则、人工反馈记忆和风险处理优先级。
 
-[真实 Web 演示](https://github.com/Yeti11H/dsh-code-review/blob/main/assets/web-demo.mp4) · [快速开始](#本地安装与启动) · [CI 接入](docs/CI.md) · [设计思路](docs/improvement-design.md) · [真实模型评测](docs/LIVE_EVALUATION.md)
+`0.3.0` 支持在 `recheck` 中更换需求和业务规则，保留逐轮依据，并提供报告摘要、人工核查交接与离线评测统计器。新版通过 [GitHub Release 安装包](https://github.com/Yeti11H/dsh-code-review/releases/tag/v0.3.0) 或源码获取；npm `latest` 仍为 `0.2.1`。详见 [核心改进](docs/CORE_IMPROVEMENTS.md) 与 [交付验证](docs/VALIDATION_0.3.0.md)。
+
+[真实 Web 演示](https://github.com/Yeti11H/dsh-code-review/blob/main/assets/web-demo.mp4) · [快速开始](#本地安装与启动) · [CI 接入](docs/CI.md) · [设计思路](docs/improvement-design.md) · [真实模型评测](docs/LIVE_EVALUATION.md) · [评测材料索引](docs/EVALUATION_INVENTORY.md)
 
 ![代码审查与增量复查演示](https://raw.githubusercontent.com/Yeti11H/dsh-code-review/main/assets/web-demo.gif)
 
@@ -15,7 +17,7 @@
 - 🔎 **代码证据可核对**：固定 Git 快照，逐字核对文件、行号和引用原文。证据不足就降级。
 - 🔁 **修复有历史**：只扫描新增变化，复核受影响的问题，保留编号与历轮状态。
 - 🎯 **业务规则前置**：输入需求、规则和排除范围；不确定的业务判断保留待核查。
-- 🛑 **不收敛就转人工**：三个不同代码版本仍不收敛时提示人工介入；源码未变时跳过模型调用。
+- 🛑 **不收敛就转人工**：同一业务依据下，三个不同代码版本仍不收敛时提示人工介入；源码和业务依据都未变时跳过模型调用。
 - 🧩 **适配团队流程**：CI 命令、自定义规则线索、明确人工反馈记忆与风险排序。
 - 📋 **保留审查记录**：源码快照、精确模型输入输出、JSON 与 Markdown 报告。
 
@@ -90,7 +92,7 @@ npx @deepseek-ai/dsh@0.2.2-rc.1 web --patch ./local-overlay.yml
 
 ### 使用交付的安装包
 
-从 [v0.2.1 下载页](https://github.com/Yeti11H/dsh-code-review/releases/tag/v0.2.1) 下载 `ooohyg-dsh-code-review-0.2.1.tgz`。
+获取本次新功能：从 [v0.3.0 下载页](https://github.com/Yeti11H/dsh-code-review/releases/tag/v0.3.0) 下载 `ooohyg-dsh-code-review-0.3.0.tgz`。上方 npm 安装命令当前仍安装 `0.2.1`。
 
 在独立的工具目录中安装本地 `.tgz` 文件。路径请替换成下载位置：
 
@@ -98,7 +100,7 @@ npx @deepseek-ai/dsh@0.2.2-rc.1 web --patch ./local-overlay.yml
 mkdir review-tools
 cd review-tools
 npm init -y
-npm install "D:/Downloads/ooohyg-dsh-code-review-0.2.1.tgz"
+npm install "D:/Downloads/ooohyg-dsh-code-review-0.3.0.tgz"
 node node_modules/@ooohyg/dsh-code-review/scripts/load.mjs "D:/code/my-project"
 npx @deepseek-ai/dsh@0.2.2-rc.1 web --patch ./local-overlay.yml
 ```
@@ -166,6 +168,22 @@ npx @deepseek-ai/dsh@0.2.2-rc.1 web --patch ./local-overlay.yml
 ```
 
 没有代码变化时保留原结果，不增加轮次。变化包括相关上下文文件；并不限于原 PR 的几行。原问题若仍存在，保留稳定编号；已解决问题重新出现时，重新打开原编号。
+
+0.3.0 还支持完整替换用户已确认的业务输入：
+
+```json
+{
+  "sessionId": "RV-实际返回的UUID",
+  "executeTests": false,
+  "reviewContext": {
+    "requirement": "分页大小只允许 1 到 100 的整数",
+    "businessRules": ["101 必须抛出 RangeError"],
+    "outOfScope": ["排序逻辑"]
+  }
+}
+```
+
+三个字段均必填；省略整个 `reviewContext` 才会沿用旧规则。输入变化后，即使代码没变也会重扫目标改动、复核旧问题，旧轮次保留原依据。仅调整范围不会自动把旧问题标为已修复，原来接受的风险需在新依据下重新确认。规则更新失败时报告保留旧结论并标记过期，先完成复查再处置问题。
 
 复查扫描使用上一轮到当前快照的变化，代码证据引用当前快照。旧问题不能仅凭行号变化或代码消失就自动解决。存在未知影响时交给人工检查。
 

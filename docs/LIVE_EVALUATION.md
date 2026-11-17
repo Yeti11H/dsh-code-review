@@ -82,7 +82,7 @@
 
 ## 查看原始材料
 
-本页是首次 0.1.1 评测的归档说明；下列原始材料位于交付的评测压缩包内，未全部复制到本源码仓库。0.2.0 新能力的验证另见 VALIDATION_0.2.0.md。
+本页是首次 0.1.1 评测的归档说明；下列材料现提供为 [历史评测脱敏归档](https://github.com/Yeti11H/dsh-code-review/releases/download/v0.3.0/historical-evaluation-0.1.1-2026-11-11.zip)，不复制到源码和 npm 包中。归档去除了本机工作目录与用户目录前缀，并重新格式化 JSON；模型输出除路径脱敏外保留，含原始与脱敏 SHA256 清单。这些是 0.1.1 记录，不是 0.3.0 的真实效果评测。0.2.0 新能力的验证另见 VALIDATION_0.2.0.md。
 
 - `measured-run/results.json`：正式调用用量、各次阶段结果与失败/恢复记录。
 - `measured-run/wire/`：逐次原始请求和接口响应，无 Authorization 头或密钥。

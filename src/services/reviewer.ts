@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 import type { ChangeSnapshot, FileChange, Finding, ModelClient, ModelRequest, ReviewContext,
   ReviewOptions, ReviewResult, ReviewRound, ReviewSession, TestResult, VerifiedIssue } from '../types.js';
-import { GitService, calculateHash, changedSources, incrementalFiles } from './git.js';
+import { GitService, changedSources, incrementalFiles } from './git.js';
 import { calculateRiskScore, riskSummary } from './risk.js';
 import { scanRules, validateRules } from './rules.js';
 import { StorageService } from './storage.js';
@@ -11,6 +11,7 @@ import { parseFindings, parseJSON, verifyResponse } from './evidence.js';
 import { INITIAL_SCAN_PROMPT, REVIEW_SYSTEM } from '../prompts/initial-scan.js';
 import { VERIFY_FINDING_PROMPT } from '../prompts/verify-findings.js';
 import { runProcess } from './process.js';
+import { contextChangedSinceReview, hasNonconvergingRounds, reviewContextHash } from './review-context.js';
 
 export class ReviewService {
   readonly git: GitService;
@@ -32,6 +33,7 @@ export class ReviewService {
   async startReview(target: string, context: ReviewContext, signal?: AbortSignal): Promise<ReviewResult> {
     return this.storage.withLock(async () => {
       this.validateContext(context);
+      context = structuredClone(context);
       const snapshot = await this.stableSnapshot(target, signal);
       const session: ReviewSession = { schemaVersion: 1, id: `RV-${randomUUID()}`, repository: this.repository,
         snapshot, context, rounds: [], calls: [], status: 'in_progress', stale: false, createdAt: Date.now() };
@@ -43,21 +45,30 @@ export class ReviewService {
     });
   }
 
-  async recheck(id: string, executeTests = false, signal?: AbortSignal): Promise<ReviewResult> {
+  async recheck(id: string, executeTests = false, signal?: AbortSignal, reviewContext?: ReviewContext): Promise<ReviewResult> {
     return this.storage.withLock(async () => {
+      if (reviewContext !== undefined) { this.validateContext(reviewContext); reviewContext = structuredClone(reviewContext); }
       const session = await this.storage.loadSession(id);
       const current = await this.stableSnapshot(session.snapshot.target, signal);
       const previous = session.rounds.at(-1);
-      if (previous?.codeHash === current.hash && !executeTests && (session.status === 'completed' || session.status === 'needs_human')) {
+      // Legacy sessions used a single immutable context. Freeze it before accepting a replacement.
+      for (const round of session.rounds) {
+        round.contextSnapshot ??= structuredClone(session.context);
+        round.contextHash ??= reviewContextHash(round.contextSnapshot);
+      }
+      const nextContext = reviewContext ?? session.context;
+      const contextChanged = !!previous && previous.contextHash !== reviewContextHash(nextContext);
+      if (!contextChanged && previous?.codeHash === current.hash && !executeTests && (session.status === 'completed' || session.status === 'needs_human')) {
         session.stale = false;
         await this.save(session);
-        return this.result(session, '代码未变化，无需复查；保留原审查状态。');
+        return this.result(session, '代码未变化，业务规则也未变化，无需复查；保留原审查状态。');
       }
       if (executeTests && !this.options.testCommands?.length) throw new Error('Test execution is not configured by the installer');
-      session.status = 'in_progress'; session.stale = false; delete session.error;
+      session.context = nextContext;
+      session.status = 'in_progress'; session.stale = !!previous && (previous.codeHash !== current.hash || contextChanged); delete session.error;
       await this.storage.saveSession(session);
       try {
-        const files = previous ? incrementalFiles(previous.snapshot, current) : current.files;
+        const files = previous && !contextChanged ? incrementalFiles(previous.snapshot, current) : current.files;
         await this.runRound(session, current, files, previous, executeTests, signal);
         return await this.finish(session, signal);
       } catch (error) { return this.failure(session, error, signal); }
@@ -67,7 +78,8 @@ export class ReviewService {
   async checkStatus(id?: string, signal?: AbortSignal): Promise<ReviewResult | Awaited<ReturnType<StorageService['listSessions']>>> {
     if (!id) return this.storage.listSessions();
     const session = await this.storage.loadSession(id);
-    session.stale = (await this.git.getChanges(session.snapshot.target, signal)).hash !== (session.rounds.at(-1)?.codeHash ?? session.snapshot.hash);
+    session.stale = contextChangedSinceReview(session)
+      || (await this.git.getChanges(session.snapshot.target, signal)).hash !== (session.rounds.at(-1)?.codeHash ?? session.snapshot.hash);
     if (session.stale && session.status === 'completed') session.status = 'needs_human';
     return this.result(session);
   }
@@ -76,6 +88,7 @@ export class ReviewService {
     if (!reason.trim() || reason.length > 2000) throw new Error('A reason is required, at most 2000 characters');
     return this.storage.withLock(async () => {
       const session = await this.storage.loadSession(id);
+      if (contextChangedSinceReview(session)) throw new Error('业务依据已变化，请先完成复查，再对相应结论记录人工处置');
       const issue = session.rounds.at(-1)?.issues.find(i => i.id === issueId);
       if (!issue) throw new Error('Issue not found');
       const memory = (await this.storage.loadLearnings()).filter(l => l.sessionId !== id || l.issueId !== issueId);
@@ -83,7 +96,7 @@ export class ReviewService {
         const evidence = issue.code_evidence.find(e => e.side !== 'before' && e.quote.trim().length >= 8);
         const pattern = evidence?.quote.split('\n').find(line => line.trim().length >= 8)?.slice(0, 300);
         if (evidence && pattern) memory.push({ sessionId: id, issueId, file: evidence.file, codePattern: pattern,
-          contextHash: calculateHash(JSON.stringify(session.context)), action, reason, addedAt: new Date().toISOString() });
+          contextHash: reviewContextHash(session.context), action, reason, addedAt: new Date().toISOString() });
       }
       issue.status = action === 'wont_fix' ? 'wont_fix' : action === 'false_positive' ? 'resolved' : 'open';
       if (action === 'false_positive') issue.verdict = 'false_positive';
@@ -96,7 +109,7 @@ export class ReviewService {
   }
 
   private validateContext(context: ReviewContext): void {
-    if (typeof context.requirement !== 'string' || !Array.isArray(context.businessRules) || !Array.isArray(context.outOfScope)
+    if (!context || typeof context !== 'object' || typeof context.requirement !== 'string' || !Array.isArray(context.businessRules) || !Array.isArray(context.outOfScope)
       || ![...context.businessRules, ...context.outOfScope].every(v => typeof v === 'string')) throw new Error('Invalid review context');
     if (JSON.stringify(context).length > 16_000) throw new Error('Business context exceeds 16000 characters');
   }
@@ -171,7 +184,7 @@ export class ReviewService {
 
   private async feedback(session: ReviewSession, snapshot: ChangeSnapshot) {
     if (!this.options.learningMode) return [];
-    const hash = calculateHash(JSON.stringify(session.context));
+    const hash = reviewContextHash(session.context);
     return (await this.storage.loadLearnings()).filter(l => l.contextHash === hash && snapshot.sources[l.file]?.includes(l.codePattern))
       .slice(-10).map(l => ({ file: l.file, codePattern: l.codePattern, action: l.action, reason: l.reason,
         instruction: '用户历史反馈仅供核查；接受风险不是安全证明，不得据此忽略新证据。' }));
@@ -180,6 +193,7 @@ export class ReviewService {
   private async runRound(session: ReviewSession, snapshot: ChangeSnapshot, files: FileChange[], previous: ReviewRound | undefined,
     executeTests: boolean, signal?: AbortSignal): Promise<void> {
     const number = session.rounds.length + 1;
+    const contextChanged = !!previous && previous.contextHash !== reviewContextHash(session.context);
     const changes = previous ? changedSources(previous.snapshot, snapshot) : files.map(f => f.file);
     const issues: VerifiedIssue[] = previous ? structuredClone(previous.issues) : [];
     const notes: string[] = ['相关调用与测试采用词法搜索和有界代码窗口，未进行完整 AST 或全程序分析。',
@@ -190,21 +204,27 @@ export class ReviewService {
     omissions.push(...ruleScan.notes);
     const ruleMatches = ruleScan.matches;
     const historicalFeedback = await this.feedback(session, snapshot);
+    if (contextChanged) notes.push('业务规则或审查范围已变化；重新扫描目标改动，并复核旧问题。旧处置不自动沿用，范围变化不证明已修复。');
     if (historicalFeedback.length) notes.push(`本轮参考 ${historicalFeedback.length} 条同上下文且原文仍匹配的人工反馈；不自动抑制问题。`);
     const missingBusiness = !session.context.requirement.trim() || session.context.businessRules.length === 0;
     if (missingBusiness) notes.push('需求或业务规则不完整；涉及业务预期的结论需要人工确认。');
 
     if (previous) {
       for (const issue of issues) {
-        if (issue.status !== 'open' || !issue.dependencies.some(f => changes.includes(f))) continue;
+        if (issue.status === 'resolved' || (!contextChanged && (issue.status !== 'open' || !issue.dependencies.some(f => changes.includes(f))))) continue;
+        if (contextChanged && issue.status === 'wont_fix') {
+          issue.status = 'open'; issue.verdict = 'needs_check'; issue.verification_status = 'needs_manual_check';
+          issue.rationale += '；业务依据变化，原接受风险的处置需重新确认';
+        }
         const finding: Finding = { id: issue.id, location: issue.location, description: issue.title, reasoning: issue.rationale,
           verification_points: issue.dependencies, business_dependent: issue.business_dependent };
         const verified = await this.verify(session, snapshot, finding, number, issue, signal);
         notes.push(...verified.notes);
-        if (verified.issue.verdict === 'false_positive' && !verified.resolved) {
+        if (verified.issue.verdict === 'false_positive' && (!verified.resolved || contextChanged)) {
           verified.issue.verdict = 'needs_check'; verified.issue.status = 'open';
           verified.issue.verification_status = 'needs_manual_check';
-          verified.issue.rationale += '；缺少当前代码支持的修复证明，保留待核查';
+          verified.resolved = false;
+          verified.issue.rationale += contextChanged ? '；业务依据变化不作为自动关闭旧问题的修复证明，请人工确认处置' : '；缺少当前代码支持的修复证明，保留待核查';
         }
         Object.assign(issue, verified.issue, { id: issue.id, fingerprint: issue.fingerprint, firstSeenRound: issue.firstSeenRound,
           status: verified.resolved ? 'resolved' : 'open', lastSeenRound: number });
@@ -228,7 +248,7 @@ export class ReviewService {
       const raw = await this.call(session, { phase: 'scan', system: REVIEW_SYSTEM,
         prompt: INITIAL_SCAN_PROMPT + JSON.stringify({ context: session.context, maxCandidates: max, changes: batchCode,
           customRuleMatches: ruleMatches.filter(m => allowed.has(m.file)), historicalFeedback,
-          previousIssues: issues.map(i => ({ id: i.id, title: i.title, location: i.location, status: i.status })),
+          previousIssues: issues.filter(i => !contextChanged || i.status !== 'resolved').map(i => ({ id: i.id, title: i.title, location: i.location, status: i.status })),
           instructions: '不要重复已有问题。原问题的修复验证由独立流程处理。' }) }, signal);
       const findings = parseFindings(raw, max);
       for (const finding of findings) {
@@ -272,7 +292,8 @@ export class ReviewService {
     }
     const resolved = issues.filter(i => i.status === 'resolved' && previous?.issues.some(old => old.id === i.id && old.status === 'open')).map(i => i.id);
     const unchanged = issues.filter(i => i.status === 'open' && !newIds.includes(i.id)).map(i => i.id);
-    session.rounds.push({ roundNumber: number, timestamp: Date.now(), codeHash: snapshot.hash, snapshot, issues, ruleMatches,
+    session.rounds.push({ roundNumber: number, timestamp: Date.now(), codeHash: snapshot.hash,
+      contextSnapshot: structuredClone(session.context), contextHash: reviewContextHash(session.context), snapshot, issues, ruleMatches,
       newIssuesCount: newIds.length, resolvedIssuesCount: resolved.length,
       coverage: { files: [...scanned], omissions: [...new Set(omissions)], notes: [...new Set(notes)] }, tests,
       changes: { resolved, newIssues: newIds, unchanged } });
@@ -284,16 +305,12 @@ export class ReviewService {
     if (latest.coverage.omissions.length) return true;
     if (latest.tests.some(t => t.exitCode !== 0)) return true;
     if (!latest.issues.some(i => i.status === 'open' && (!i.optional || i.verdict === 'needs_check'))) return false;
-    const distinct = session.rounds.filter((r, i, all) => i === 0 || r.codeHash !== all[i - 1]!.codeHash);
-    const rounds = distinct.slice(-3);
-    if (rounds.length < 3) return false;
-    const open = rounds.map(r => r.issues.filter(i => i.status === 'open' && (!i.optional || i.verdict === 'needs_check')).length);
-    return rounds.every(r => r.newIssuesCount > 0) || (open[0]! <= open[1]! && open[1]! <= open[2]!);
+    return hasNonconvergingRounds(session);
   }
 
   private async finish(session: ReviewSession, signal?: AbortSignal): Promise<ReviewResult> {
     const current = await this.git.getChanges(session.snapshot.target, signal);
-    session.stale = current.hash !== session.rounds.at(-1)!.codeHash;
+    session.stale = contextChangedSinceReview(session) || current.hash !== session.rounds.at(-1)!.codeHash;
     if (session.stale) session.status = 'needs_human';
     await this.save(session);
     return this.result(session);

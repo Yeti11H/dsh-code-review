@@ -1,0 +1,5 @@
+[
+  { "runId": "ok-1", "caseId": "race", "arm": "plugin", "status": "completed", "modelRequested": "model-a", "modelReturned": "model-a", "configHash": "cfg", "codeHash": "code", "contextHash": "ctx", "calls": 2, "inputTokens": 100, "outputTokens": 30, "elapsedMs": 1200 },
+  { "runId": "ok-2", "caseId": "race", "arm": "plugin", "status": "completed", "modelRequested": "model-a", "modelReturned": "model-a", "configHash": "cfg", "codeHash": "code", "contextHash": "ctx", "calls": 1, "inputTokens": null, "outputTokens": 15, "elapsedMs": 800 },
+  { "runId": "failed-1", "caseId": "clean", "arm": "with-requirements", "status": "failed", "modelRequested": "model-a", "modelReturned": null, "configHash": "cfg", "codeHash": "code-2", "contextHash": "ctx", "calls": 1, "inputTokens": 20, "outputTokens": null, "elapsedMs": 2500 }
+]

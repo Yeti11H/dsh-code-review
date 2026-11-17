@@ -55,6 +55,23 @@ test('official input validation rejects wrong argument types', async t => {
   const r = await invoke(ctx, 'start_review', { businessRules: 42 }); assert.equal(r.isError, true);
 });
 
+test('official recheck tool accepts only complete user-confirmed replacement context', async t => {
+  const f = await fixture(t); await f.write('index.js', bug);
+  const adapter = new ReviewAdapter();
+  const ctx = await mount(t, { cwd: f.root, provider: 'test', model: 'test-model' }, adapter);
+  const first = await invoke(ctx, 'start_review', { requirement: 'old requirement', businessRules: ['old rule'] });
+  const before = adapter.calls.length;
+  const reviewContext = { requirement: 'new requirement', businessRules: ['new rule'], outOfScope: [] };
+  const next = await invoke(ctx, 'recheck', { sessionId: first.value.sessionId, reviewContext });
+  assert.equal(next.isError, false, JSON.stringify(next));
+  assert.ok(adapter.calls.length > before, 'replacement context must reach the actual service');
+  assert.match(next.value.report, /new requirement/);
+  const count = adapter.calls.length;
+  const invalid = await invoke(ctx, 'recheck', { sessionId: first.value.sessionId, reviewContext: { requirement: 'partial' } });
+  assert.equal(invalid.isError, true);
+  assert.equal(adapter.calls.length, count);
+});
+
 test('bundle defaults follow each session workspace while installer cwd takes precedence', async t => {
   const first = await fixture(t); const second = await fixture(t);
   await first.write('index.js', bug); await second.write('index.js', bug);
