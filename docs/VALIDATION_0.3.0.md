@@ -15,8 +15,8 @@
 - Windows 本地完整回归：68 项，67 通过，0 失败，1 项因本机符号链接创建权限跳过。统计器 10 项回归包括失败不留下半份结果、拒绝覆盖、模型/配置标识保留、未知用量及空分母。
 - 类型检查、构建与 pack 检查通过。Release 归档含实际编译产物、bundle 和离线统计脚本。
 - 独立工具目录从本地 0.3.0 `.tgz` 安装成功；官方 Cordis/tools/LLM runtime 注册四个工具，`recheck` 参数包含 `reviewContext`；CLI help 可运行。
-- 隔离 DSH_HOME 使用官方 `dsh plugin --profile web add <本地0.3.0归档> --ignore-scripts` 成功。官方 profile loader 识别 0.3.0 bundle，skippedBundles 为零。
-- GitHub 当前代码的 Ubuntu/Windows 托管检查在发布前核对；结果链接随后补充。上述本地检查不能代替跨平台结果。
+- 隔离 DSH_HOME 使用官方 `dsh plugin --profile web add <本地0.3.0归档> --ignore-scripts` 成功。官方 profile loader 识别 0.3.0 bundle，skippedBundles 为零；`web --dump-config` 退出 0 且包含本插件。独立安装包中的离线统计器也已实际运行合成数据。
+- [GitHub Actions 43998756581](https://github.com/Yeti11H/dsh-code-review/actions/runs/43998756581) 在功能提交 `908f6bc0847efed8dd59764094ec7221352bf736` 运行：Ubuntu 和 Windows 均通过依赖安装、类型检查、68 项完整测试和 pack 检查，0 失败、0 跳过。随后发布收尾提交只更新文档，不改变被测代码和配置。
 
 ## 获取新版
 
