@@ -20,7 +20,9 @@
 
 ## 获取新版
 
-[GitHub v0.3.0 预发布](https://github.com/Yeti11H/dsh-code-review/releases/tag/v0.3.0) 提供安装归档、源码与 SHA256 校验文件。npm latest 仍为 0.2.1；新包未发布到 npm。新版需安装 Release 的 `.tgz` 或自行构建源码。
+[npm 0.3.0](https://www.npmjs.com/package/@ooohyg/dsh-code-review/v/0.3.0) 已发布，官方 latest 为 0.3.0。[GitHub v0.3.0 预发布](https://github.com/Yeti11H/dsh-code-review/releases/tag/v0.3.0) 提供相同插件归档、源码与 SHA256 校验文件。
+
+2026-11-17 核对官方 npm：版本与 latest 均为 0.3.0，公共归档 SHA256 与 GitHub 安装包一致。在新的独立目录从官方 npm 安装后，官方运行时成功注册四个工具及 reviewContext 参数。安装包内文档保留首次打包时的发布前状态；仓库 README 和本页为最新状态。第三方 npm 镜像同步可能延迟，可显式指定 `--registry=https://registry.npmjs.org/`。
 
 官方 Harness 的插件安装命令支持本地归档路径；隔离 profile 验证方法沿用 INSTALLATION_0.2.1.md。使用手动 overlay 时，安装 `.tgz` 后运行包内 `scripts/load.mjs` 并启动指定 Harness 版本。不要同时使用 profile 和 overlay 重复加载插件。
 

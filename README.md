@@ -4,7 +4,7 @@
 
 这是一个 DeepSeek Harness 插件，适合希望保留审查依据、业务规则和修复历史的开发者。0.2.0 增加 CI 命令、团队规则、人工反馈记忆和风险处理优先级。
 
-`0.3.0` 支持在 `recheck` 中更换需求和业务规则，保留逐轮依据，并提供报告摘要、人工核查交接与离线评测统计器。新版通过 [GitHub Release 安装包](https://github.com/Yeti11H/dsh-code-review/releases/tag/v0.3.0) 或源码获取；npm `latest` 仍为 `0.2.1`。详见 [核心改进](docs/CORE_IMPROVEMENTS.md) 与 [交付验证](docs/VALIDATION_0.3.0.md)。
+`0.3.0` 支持在 `recheck` 中更换需求和业务规则，保留逐轮依据，并提供报告摘要、人工核查交接与离线评测统计器。npm `latest` 已为 `0.3.0`，也可使用 [GitHub Release 安装包](https://github.com/Yeti11H/dsh-code-review/releases/tag/v0.3.0) 或源码。详见 [核心改进](docs/CORE_IMPROVEMENTS.md) 与 [交付验证](docs/VALIDATION_0.3.0.md)。
 
 [真实 Web 演示](https://github.com/Yeti11H/dsh-code-review/blob/main/assets/web-demo.mp4) · [快速开始](#本地安装与启动) · [CI 接入](docs/CI.md) · [设计思路](docs/improvement-design.md) · [真实模型评测](docs/LIVE_EVALUATION.md) · [评测材料索引](docs/EVALUATION_INVENTORY.md)
 
@@ -83,7 +83,7 @@ dsh plugin --profile web remove @ooohyg/dsh-code-review
 mkdir review-tools
 cd review-tools
 npm init -y
-npm install @ooohyg/dsh-code-review@0.2.1
+npm install @ooohyg/dsh-code-review@0.3.0
 node node_modules/@ooohyg/dsh-code-review/scripts/load.mjs "D:/code/my-project"
 npx @deepseek-ai/dsh@0.2.2-rc.1 web --patch ./local-overlay.yml
 ```
@@ -92,7 +92,7 @@ npx @deepseek-ai/dsh@0.2.2-rc.1 web --patch ./local-overlay.yml
 
 ### 使用交付的安装包
 
-获取本次新功能：从 [v0.3.0 下载页](https://github.com/Yeti11H/dsh-code-review/releases/tag/v0.3.0) 下载 `ooohyg-dsh-code-review-0.3.0.tgz`。上方 npm 安装命令当前仍安装 `0.2.1`。
+从 [v0.3.0 下载页](https://github.com/Yeti11H/dsh-code-review/releases/tag/v0.3.0) 下载 `ooohyg-dsh-code-review-0.3.0.tgz`。GitHub 与 npm 提供相同的插件安装归档；归档内文档保留首次打包时的发布状态，最新说明以本 README 为准。
 
 在独立的工具目录中安装本地 `.tgz` 文件。路径请替换成下载位置：
 

@@ -23,7 +23,7 @@ Luna 交付的材料索引、统计脚本和三张真实视频关键帧已复核
 - [评测协议与统计用法](EVALUATION_PROTOCOL.md)
 - [材料索引](EVALUATION_INVENTORY.md)
 
-Release 提供插件 `.tgz`、源码 ZIP、历史脱敏记录 ZIP 与 SHA256SUMS.txt。安装新版请使用 Release 归档或构建源码。npm latest 仍为 0.2.1：本机 npm 会话已失效，本轮没有完成 npm 发布。
+Release 提供插件 `.tgz`、源码 ZIP、历史脱敏记录 ZIP 与 SHA256SUMS.txt。[npm 包](https://www.npmjs.com/package/@ooohyg/dsh-code-review) 已同步为 0.3.0，官方 latest 指向 0.3.0，公共插件归档与 GitHub 安装包 SHA256 一致。可直接使用标准插件安装命令；第三方镜像若仍缓存旧版，请指定官方 registry。归档内旧文档的 npm 状态不再代表最新情况。
 
 ## 尚未形成实测结论的部分
 
