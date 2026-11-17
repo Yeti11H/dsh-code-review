@@ -1,5 +1,11 @@
 # 更新记录
 
+## Unreleased
+
+- 新增 Codex Skill，使用当前 Codex 会话模型执行首次代码审查；内置离线快照、引用校验、报告与状态命令，无需额外 DeepSeek API 密钥。
+- DSH 与 Codex 审查记录分开存储；Codex 首版尚不支持增量复查、问题处置记忆和三轮收敛。
+- 增加从 GitHub 安装 Skill 的脚本与使用说明；尚未发布新的 npm 版本。
+
 ## 0.3.0（GitHub 预发布）
 
 - `recheck` 新增可选 `reviewContext`，完整替换用户确认的需求、业务规则和排除范围；代码未变但依据变化时仍重新分析。

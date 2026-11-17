@@ -5,13 +5,18 @@ import type { Learning, ReviewSession } from '../types.js';
 
 export class StorageService {
   readonly directory: string;
-  constructor(private readonly repository: string) { this.directory = path.join(repository, '.dsh-review'); }
+  constructor(private readonly repository: string, scope?: 'codex') {
+    this.directory = path.join(repository, '.dsh-review', ...(scope ? [scope] : []));
+  }
 
   private validateId(id: string): void {
     if (!/^RV-[a-f0-9-]{36}$/.test(id)) throw new Error('Invalid review session ID');
   }
 
   private async prepare(): Promise<void> {
+    const root = path.join(this.repository, '.dsh-review');
+    await mkdir(root, { recursive: true, mode: 0o700 });
+    if ((await lstat(root)).isSymbolicLink()) throw new Error('Review storage must not be a symlink');
     await mkdir(this.directory, { recursive: true, mode: 0o700 });
     if ((await lstat(this.directory)).isSymbolicLink()) throw new Error('Review storage must not be a symlink');
   }

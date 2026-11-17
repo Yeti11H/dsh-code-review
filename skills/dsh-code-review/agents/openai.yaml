@@ -1,0 +1,4 @@
+interface:
+  display_name: "DSH Code Review"
+  short_description: "Evidence-based Git reviews using the current Codex model"
+  default_prompt: "Use $dsh-code-review to review my Git changes against the stated requirements, validate code citations, and save a review report."

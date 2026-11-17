@@ -8,6 +8,8 @@
 
 [真实 Web 演示](https://github.com/Yeti11H/dsh-code-review/blob/main/assets/web-demo.mp4) · [快速开始](#本地安装与启动) · [CI 接入](docs/CI.md) · [设计思路](docs/improvement-design.md) · [真实模型评测](docs/LIVE_EVALUATION.md) · [评测材料索引](docs/EVALUATION_INVENTORY.md)
 
+**Codex Skill（当前源码版，尚未发布到 npm）：** 使用当前 Codex 模型分析，离线脚本负责 Git 快照、引用校验和报告。无需 DeepSeek API 密钥或 DSH；Node.js 24.9+ 与 Git 已足够。首版支持首次审查，尚不提供 DSH 的增量复查与问题处置。[直接安装步骤](docs/CODEX_SKILL.md#从-github-安装) · [Skill 源码](skills/dsh-code-review/SKILL.md)
+
 ![代码审查与增量复查演示](https://raw.githubusercontent.com/Yeti11H/dsh-code-review/main/assets/web-demo.gif)
 
 上图是官方 Harness Web 的真实操作：选择 DeepSeek Flash、提交审查、查看工具结果。使用真实模型，保留等待时间；片尾延长约 6.5 秒便于阅读。[录制说明](docs/WEB_DEMO.md)。旧版脚本模型动画仍在 assets/demo.gif 中，二者不要混淆。
